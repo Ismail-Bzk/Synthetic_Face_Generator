@@ -1,0 +1,35 @@
+@startuml
+
+
+skinparam backgroundColor  CornflowerBlue
+
+skinparam minClassWidth 125
+skinparam nodesep 10
+skinparam ranksep 10
+skinparam classFontColor black
+skinparam classFontName Aapex
+
+skinparam class {
+BackgroundColor CornflowerBlue
+}
+
+class SyntheticFaceGenerator {
+
+  
+  +__init__()
+  +read_json(file_path: str) -> dict
+  +init_blendshapes() -> None
+  +load_head_texture(texture_id: str) -> None
+  +add_environment_texture(background_path: str) -> None
+  +sphere_fit(spX: list, spY: list, spZ: list) -> tuple
+  +add_texture(texture_path: str, obj: object) -> None
+  +head_texture() -> None
+  +apply_transform_rotation(obj: object) -> None
+  +create_eye_sphere(array: list, name: str, x: np.array, y: np.array, z: np.array, texture_path: str) -> None
+  +rotate_eyes(obj: object) -> None
+  +add_constraint(obj_act: object, target: object, constraint_type: str, constraint_name: str) -> None
+  +start() -> None
+}
+@enduml
+
+

@@ -1,0 +1,42 @@
+@startuml
+
+
+skinparam backgroundColor  CornflowerBlue
+
+skinparam minClassWidth 125
+skinparam nodesep 10
+skinparam ranksep 10
+skinparam classFontColor black
+skinparam classFontName Aapex
+
+skinparam class {
+BackgroundColor CornflowerBlue
+}
+
+class MyGen {
+  - dumpImage: bool
+  - fpath: str
+  - IMAGE_Back: list
+  - frame_range: range
+  - hair: object
+  - clothes: object
+  - mask: object
+  - LeftPupil: object
+  - RightPupil: object
+  - data_json: dict
+  
+  + __init__(R_pupil: object, L_pupil: object) -> None
+  + read_json(file_path: str) -> dict
+  + setup_render_nodes() -> None
+  + setup_background(background_path: str, brightness: float, contrast: float, b_M: float, c_M: float) -> None
+  + apply_environment_texture(background_path: str) -> None
+  + apply_eye_head_noise() -> None
+  + capture_image(f: int) -> None
+  + remove_objects_and_materials(*objects: object) -> None
+  + write_csv_data(f: int, csv_writer: object) -> None
+  + process_frame(f: int, csv_writer: object) -> None
+  + start(nameRep: str) -> None
+}
+@enduml
+
+

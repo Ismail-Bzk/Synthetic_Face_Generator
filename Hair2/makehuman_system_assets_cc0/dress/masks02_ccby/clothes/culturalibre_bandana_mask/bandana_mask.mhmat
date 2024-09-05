@@ -1,0 +1,13 @@
+# MakeHuman Material definition
+
+name material_003Material
+
+// Color shading attributes
+diffuseColor  0.6 0.6 0.6
+specularColor  0.1 0.1 0.1
+shininess 1
+opacity 1
+
+// Textures and properties
+diffuseTexture bandana.jpg
+bumpTexture bandana_normal.png

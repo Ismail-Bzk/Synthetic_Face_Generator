@@ -1,0 +1,54 @@
+{
+    "culturalibre_bandana_mask": {
+        "author": "culturalibre",
+        "category": "Accessory",
+        "changed": "2020-04-17",
+        "created": "2020-04-17",
+        "description": "Red bandana mask.Original by Tactical_Beard.Downloaded from: https://sketchfab.com/3d-models/bandana-mask-1d39e7ae6b5748acb2ffddf420893f5a",
+        "license": "CC-BY",
+        "original_author": "",
+        "original_source": "",
+        "source": "http://www.makehumancommunity.org/node/2483",
+        "thumbnail": "culturalibre_bandana_mask.png",
+        "type": "clothes"
+    },
+    "elvs_covid_mask": {
+        "author": "Elvaerwyn",
+        "category": "Accessory",
+        "changed": "2020-05-14",
+        "created": "2020-05-14",
+        "description": "A protective mask for makehuman models. Unisex. Quad model. One texture setup included.",
+        "license": "CC-BY",
+        "original_author": "",
+        "original_source": "",
+        "source": "http://www.makehumancommunity.org/node/2523",
+        "thumbnail": "elvs_covid_mask.png",
+        "type": "clothes"
+    },
+    "elvs_plague_doctor_mask": {
+        "author": "Elvaerwyn",
+        "category": "Hat/Helmet",
+        "changed": "2020-03-28",
+        "created": "2020-03-28",
+        "description": "A mask for makehuman female models consisting of a stylized roll play plague mask. Tri mesh. Looks better in blender with subdivision of at least times 1. One simple texture included.",
+        "license": "CC-BY",
+        "original_author": "",
+        "original_source": "",
+        "source": "http://www.makehumancommunity.org/node/2371",
+        "thumbnail": "elvs_plague_doctor_mask.png",
+        "type": "clothes"
+    },
+    "gredal_gas_mask": {
+        "author": "Mathias_Gredal",
+        "category": "Hat/Helmet",
+        "changed": "2020-11-01",
+        "created": "2020-11-01",
+        "description": "A soviet style gas mask. Used 3d model from: https://sketchfab.com/3d-models/russian-gp-5-gas-mask-filter-damaged-a4cea22eddbf4e3fa7dd8d622642e635 By: G-P5 Gas Mask by MattOades AKA MattMakesSwords",
+        "license": "CC-BY",
+        "original_author": "",
+        "original_source": "",
+        "source": "http://www.makehumancommunity.org/node/2715",
+        "thumbnail": "gredal_gas_mask.png",
+        "type": "clothes"
+    }
+}

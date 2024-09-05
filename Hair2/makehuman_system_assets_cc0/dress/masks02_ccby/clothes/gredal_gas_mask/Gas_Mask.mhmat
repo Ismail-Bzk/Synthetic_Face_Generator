@@ -1,0 +1,22 @@
+# This is a clothes file for MakeHuman Community, exported by MakeClothes 2
+#
+# author: unknown
+# license: CC0
+#
+name Gas Mask material
+
+// Color shading attributes
+diffuseColor  0.5000 0.5000 0.5000
+specularColor  0.4472 0.4472 0.4472
+shininess 0.4472
+opacity 1
+
+// Textures
+
+diffuseTexture gaas_Albedo2.png
+// Settings
+
+transparent False
+alphaToCoverage True
+backfaceCull False
+depthless False

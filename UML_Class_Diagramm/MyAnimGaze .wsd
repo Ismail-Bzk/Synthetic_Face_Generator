@@ -1,0 +1,30 @@
+@startuml
+
+
+skinparam backgroundColor  CornflowerBlue
+
+skinparam minClassWidth 125
+skinparam nodesep 10
+skinparam ranksep 10
+skinparam classFontColor black
+skinparam classFontName Aapex
+
+skinparam class {
+BackgroundColor CornflowerBlue
+}
+
+class MyAnim {
+  - Head_Yaw: np.array
+  - Head_Pitch: np.array
+  - Gaze_Yaw: np.array
+  - Gaze_Pitch: np.array
+  - scene: object
+  - frame: int
+  
+  +__init__(fixed: bool, head_yaw_range: tuple, head_pitch_range: tuple, gaze_yaw_range: tuple, gaze_pitch_range: tuple, num_frames: int )
+  +set_initial_keyframes() -> None
+  +generate_animation(fixed: bool) -> None
+}
+@enduml
+
+
