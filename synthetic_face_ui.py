@@ -47,7 +47,7 @@ class SyntheticFaceUI:
         img = Image.open(image_path)
 
         # Resize the image to fit within the Tkinter window
-        img = img.resize((400, 300), Image.ANTIALIAS)
+        img = img.resize((400, 300), Image.Resampling.LANCZOS)
 
         # Convert the image to a Tkinter-compatible format
         img_tk = ImageTk.PhotoImage(img)

@@ -44,7 +44,7 @@ Before running the application, ensure you have the following installed:
     Start the GUI by running the Python script:
   
    ```bash
-   python main.py
+   python synthetic_face_ui.py
    
 3. **Configure Parameters:**
 
