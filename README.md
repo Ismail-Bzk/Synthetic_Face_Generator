@@ -35,7 +35,7 @@ Before running the application, ensure you have the following installed:
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/yourusername/synthetic-face-data-generator.git
+   git clone https://github.com/Ismail-Bzk/Synthetic_Face_Generator.git
    cd synthetic-face-data-generator
 
 ## Usage
