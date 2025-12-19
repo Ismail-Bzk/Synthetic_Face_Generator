@@ -19,6 +19,7 @@ def VertexCoordinates(a,obj):
     XX = np.array([v.co[0] for v in mesh.vertices])
     YY = np.array([v.co[1] for v in mesh.vertices])
     ZZ = np.array([v.co[2] for v in mesh.vertices])
+    obj_eval.to_mesh_clear()
     return Vector((XX[a],YY[a],ZZ[a]))
 
 def LeftEyeP():
@@ -30,6 +31,7 @@ def LeftEyeP():
     XX = np.array([v.co[0] for v in mesh.vertices])
     YY = np.array([v.co[1] for v in mesh.vertices])
     ZZ = np.array([v.co[2] for v in mesh.vertices])
+    obj_eval.to_mesh_clear()
     return [XX[17866],YY[17866],ZZ[17866]]
 
 def RightEyeP():
@@ -42,6 +44,7 @@ def RightEyeP():
     YY = np.array([v.co[1] for v in mesh.vertices])
     ZZ = np.array([v.co[2] for v in mesh.vertices])
     index = [9900,9915,10155,10177,17952,17959]
+    obj_eval.to_mesh_clear()
     return np.mean([XX[index],YY[index],ZZ[index]],axis=1)
     
 
@@ -53,6 +56,7 @@ def MapPointToMesh(a,obj):
     XX = np.array([v.co[0] for v in mesh.vertices])
     YY = np.array([v.co[1] for v in mesh.vertices])
     ZZ = np.array([v.co[2] for v in mesh.vertices])
+    obj_eval.to_mesh_clear()
     
     Index = np.array([i.index for i in obj.data.vertices ])
     Index_filtered = (Index[3300:4800]).tolist()
@@ -93,7 +97,7 @@ def Writetxt(R_eye_index,L_eye_index):
         dir = end-start
         dir.normalize()
         hit, loc, normal, ind, ob, m = bpy.context.scene.ray_cast(depsgraph,start,dir)
-        visible = hit & ((loc-end).length<10e-3)
+        visible = hit and ((loc-end).length<10e-3)
         visibility[index]=visible
         
     return Pixels,visibility

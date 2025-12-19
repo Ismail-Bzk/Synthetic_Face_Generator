@@ -44,10 +44,11 @@ class SyntheticFaceUI:
 
         # Load an image using Pillow
         image_path = os.path.join(os.path.dirname(__file__), "utils", "interface.png")  # Replace with the path to your image
-        img = Image.open(image_path)
+        with Image.open(image_path) as img:
+            img = img.copy()
 
         # Resize the image to fit within the Tkinter window
-        img = img.resize((400, 300), Image.ANTIALIAS)
+        img = img.resize((400, 300), Image.Resampling.LANCZOS)
 
         # Convert the image to a Tkinter-compatible format
         img_tk = ImageTk.PhotoImage(img)
@@ -290,7 +291,7 @@ class SyntheticFaceUI:
                 "./blender", os.path.join(os.path.dirname(__file__), "model_v1/Model_Normal.blend"), "--background", "--python",
                 os.path.join(os.path.dirname(__file__), "Launch.py"),
                 "--",
-                str(head_texture),  # sys.argv[6] ,i
+                str(head_texture),  # head_texture arg
                 camera_mode,
                 directory_name,
                 str(light_power),
@@ -306,7 +307,7 @@ class SyntheticFaceUI:
             ]
 
             # Run the Blender process
-            subprocess.run(command)
+            subprocess.run(command, check=True)
 
 if __name__ == "__main__":
     root = tk.Tk()

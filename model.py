@@ -27,6 +27,25 @@ class SyntheticFaceGenerator:
         self.init_blendshapes()
         self.LeftPupil = None
         self.RightPupil = None
+
+    def _try_keentools_op(self, op_name, **kwargs):
+        ops = bpy.ops.keentools_fb
+        if op_name not in dir(ops):
+            return False
+        try:
+            getattr(ops, op_name)(**kwargs)
+            return True
+        except Exception as exc:
+            print(f"Warning: keentools_fb.{op_name} failed: {exc}")
+            return False
+
+    def _run_tex_selector(self):
+        for op_name in ("tex_selector", "tex_selector_op", "texture_selector", "tex_selector_popup"):
+            if self._try_keentools_op(op_name):
+                return True
+        tex_ops = [name for name in dir(bpy.ops.keentools_fb) if "tex" in name.lower()]
+        print(f"Warning: no keentools texture selector op found. Available: {tex_ops}")
+        return False
         
     def read_json(self,file_path):
         with open(file_path, 'r') as json_file:
@@ -70,23 +89,28 @@ class SyntheticFaceGenerator:
         bpy.context.scene.keentools_fb_settings.tex_uv_expand_percents = 20 
         bpy.context.scene.keentools_fb_settings.tex_width = 8192
         bpy.context.scene.keentools_fb_settings.tex_height = 8192
-        bpy.ops.keentools_fb.tex_selector()
+        self._run_tex_selector()
         
         
 
     def add_environment_texture(self, background_path):
-        C = bpy.context
-        scn = C.scene
+        scn = bpy.context.scene
+        if scn.world is None:
+            scn.world = bpy.data.worlds.new("World")
+        scn.world.use_nodes = True
         node_tree = scn.world.node_tree
         tree_nodes = node_tree.nodes
         tree_nodes.clear()
 
         node_background = tree_nodes.new(type='ShaderNodeBackground')
         node_environment = tree_nodes.new('ShaderNodeTexEnvironment')
-        node_environment.image = bpy.data.images.load(background_path)
+        node_environment.image = bpy.data.images.load(background_path, check_existing=True)
         node_output = tree_nodes.new(type='ShaderNodeOutputWorld')
         node_mapping = tree_nodes.new(type='ShaderNodeMapping')
         node_tex_coord = tree_nodes.new(type='ShaderNodeTexCoord')
+        node_background.name = "Background"
+        node_environment.name = "Environment Texture"
+        node_mapping.name = "Mapping"
 
         links = node_tree.links
         links.new(node_tex_coord.outputs[0], node_mapping.inputs[0])
@@ -110,10 +134,14 @@ class SyntheticFaceGenerator:
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
         tex_image = nodes.new('ShaderNodeTexImage')
-        tex_image.image = bpy.data.images.load(texture_path)
+        tex_image.image = bpy.data.images.load(texture_path, check_existing=True)
         principled = nodes['Principled BSDF']
-        principled.inputs[9].default_value = 1
-        principled.inputs[7].default_value = 0
+        specular_input = principled.inputs.get("Specular") or principled.inputs.get("Specular IOR Level")
+        if specular_input:
+            specular_input.default_value = 1
+        roughness_input = principled.inputs.get("Roughness")
+        if roughness_input:
+            roughness_input.default_value = 0
         transparent = nodes.new('ShaderNodeBsdfTransparent')
         transparent.inputs[0].default_value = (0, 0, 0, 1)
         mix_shader = nodes.new('ShaderNodeMixShader')
@@ -132,8 +160,12 @@ class SyntheticFaceGenerator:
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
         principled = nodes['Principled BSDF']
-        principled.inputs[9].default_value = 0.9
-        principled.inputs[7].default_value = 0
+        specular_input = principled.inputs.get("Specular") or principled.inputs.get("Specular IOR Level")
+        if specular_input:
+            specular_input.default_value = 0.9
+        roughness_input = principled.inputs.get("Roughness")
+        if roughness_input:
+            roughness_input.default_value = 0
         transparent = nodes.new('ShaderNodeBsdfTransparent')
         transparent.inputs[0].default_value = (0, 0, 0, 1)
         mix_shader = nodes.new('ShaderNodeMixShader')
@@ -174,16 +206,16 @@ class SyntheticFaceGenerator:
         self.apply_transform_rotation(obj)
 
     def add_constraint(self, obj_act, target, constraint_type, constraint_name):
-        bpy.context.view_layer.objects.active = obj_act
-        bpy.ops.object.constraint_add(type=constraint_type)
-        bpy.context.object.constraints[constraint_name].target = target
+        constraint = obj_act.constraints.new(type=constraint_type)
+        constraint.name = constraint_name
+        constraint.target = target
 
-    def start(self):
+    def start(self, texture_id):
         for img in bpy.data.images:
             if not img.users:
                 bpy.data.images.remove(img)
 
-        self.load_head_texture(sys.argv[6])
+        self.load_head_texture(texture_id)
         self.head_texture()
         eye_texture_dir = Path(os.path.join(os.path.dirname(__file__),"EyeTextures/"))
         eye_textures = sorted([str(f) for f in eye_texture_dir.glob("*")])
@@ -206,6 +238,7 @@ class SyntheticFaceGenerator:
         x = np.array([ v.co[0] for v in mesh.vertices])
         y = np.array([ v.co[1] for v in mesh.vertices])
         z = np.array([ v.co[2] for v in mesh.vertices])
+        obj_eval.to_mesh_clear()
         self.create_eye_sphere(self.leftI, 'Left Eye', x, y, z, chosen_eye_texture)
         self.create_eye_sphere(self.rightI, 'Right Eye', x, y, z, chosen_eye_texture)
         self.rotate_eyes(bpy.data.objects['Left Eye'])
@@ -221,5 +254,7 @@ class SyntheticFaceGenerator:
 
 if __name__ == "__main__":
     generator = SyntheticFaceGenerator()
-    generator.start()
+    if len(sys.argv) < 2:
+        raise SystemExit("Usage: model.py <texture_id>")
+    generator.start(sys.argv[1])
     print('generator printer',generator.RightPupil, generator.LeftPupil)

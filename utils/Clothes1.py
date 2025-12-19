@@ -48,11 +48,19 @@ def apply_material(obj, texture_diffuse_path, texture_normal_path=None):
     mix_rgb.inputs[0].default_value = random.uniform(0.75, 1)
     mix_rgb.inputs[1].default_value = (random.random(), random.random(), random.random(), 1)
 
-    principled = nodes['Principled BSDF']
-    principled.inputs[9].default_value = 0.9
+    principled = nodes.get('Principled BSDF')
+    if principled is None:
+        principled = nodes.new('ShaderNodeBsdfPrincipled')
+        output = nodes.get('Material Output')
+        if output:
+            mat.node_tree.links.new(principled.outputs[0], output.inputs[0])
+    specular_input = principled.inputs.get("Specular") or principled.inputs.get("Specular IOR Level")
+    if specular_input:
+        specular_input.default_value = 0.9
 
     mat.node_tree.links.new(tex_image_diff.outputs[0], mix_rgb.inputs[2])
-    mat.node_tree.links.new(tex_image_diff.outputs[1], principled.inputs[21] )
+    if tex_image_diff.outputs.get("Alpha") and principled.inputs.get("Alpha"):
+        mat.node_tree.links.new(tex_image_diff.outputs["Alpha"], principled.inputs["Alpha"])
     mat.node_tree.links.new(mix_rgb.outputs[0], principled.inputs[0])
 
     if texture_normal_path:
@@ -66,12 +74,20 @@ def apply_material(obj, texture_diffuse_path, texture_normal_path=None):
 
         mat.node_tree.links.new(tex_image_norm.outputs[0], normal_map.inputs[1])
         mat.node_tree.links.new(normal_map.outputs[0], bump_map.inputs[3])
-        mat.node_tree.links.new(bump_map.outputs[0], principled.inputs[22])
+        if principled.inputs.get("Normal"):
+            mat.node_tree.links.new(bump_map.outputs[0], principled.inputs["Normal"])
 
     if obj.data.materials:
         obj.data.materials[0] = mat
     else:
         obj.data.materials.append(mat)
+
+
+def import_obj(filepath):
+    if hasattr(bpy.ops.wm, "obj_import"):
+        bpy.ops.wm.obj_import(filepath=filepath)
+    else:
+        bpy.ops.import_scene.obj(filepath=filepath)
 
 def import_and_configure_obj(asset_params, asset_type):
     chosen_file = asset_params[0]
@@ -83,7 +99,7 @@ def import_and_configure_obj(asset_params, asset_type):
     bpy.data.objects['FBHead'].rotation_euler = (0, 0, 0)
     path = Path(os.path.join(parent_dir, f"Hair2/makehuman_system_assets_cc0/{asset_type}/"))
     filepath = str(path) + "/" + chosen_file + "/" + asset_name + ".obj"
-    bpy.ops.wm.obj_import(filepath=filepath)
+    import_obj(filepath)
     a = bpy.data.objects[asset_name]
     bpy.context.view_layer.objects.active = a
     bpy.ops.object.modifier_add(type='SUBSURF')

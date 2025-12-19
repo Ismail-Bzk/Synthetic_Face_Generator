@@ -98,7 +98,17 @@ class MyScene:
         Initializes the scene by setting up the background, camera, light, and DoF.
         """
         # Set background to black
-        bpy.data.worlds["World"].node_tree.nodes["Background"].inputs[0].default_value = (0, 0, 0, 1)
+        world = bpy.context.scene.world
+        if world is None:
+            world = bpy.data.worlds.new("World")
+            bpy.context.scene.world = world
+        world.use_nodes = True
+        nodes = world.node_tree.nodes
+        background = nodes.get("Background") or nodes.new(type="ShaderNodeBackground")
+        output = nodes.get("World Output") or nodes.new(type="ShaderNodeOutputWorld")
+        if not background.outputs[0].is_linked:
+            world.node_tree.links.new(background.outputs[0], output.inputs["Surface"])
+        background.inputs[0].default_value = (0, 0, 0, 1)
         
         # Setup camera, light, and DoF
         self.setup_camera()
@@ -108,4 +118,3 @@ class MyScene:
 if __name__ == "__main__":
     scene = MyScene("STFOX")
     scene.start()
-
