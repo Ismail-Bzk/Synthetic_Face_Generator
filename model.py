@@ -63,14 +63,16 @@ class SyntheticFaceGenerator:
                 return
 
         bpy.ops.keentools_fb.select_camera(headnum=0, camnum=0)
-        bpy.ops.keentools_fb.pickmode_starter(headnum=0, camnum=0)
+        bpy.ops.keentools_fb.pickmode_starter(headnum=0, camnum=0, auto_detect_single=False)
         bpy.ops.keentools_fb.exit_pinmode()
         bpy.ops.keentools_fb.select_camera(headnum=0, camnum=1)
-        bpy.ops.keentools_fb.pickmode_starter(headnum=0, camnum=1)
+        bpy.ops.keentools_fb.pickmode_starter(headnum=0, camnum=1, auto_detect_single=False)
         bpy.context.scene.keentools_fb_settings.tex_uv_expand_percents = 20 
         bpy.context.scene.keentools_fb_settings.tex_width = 8192
         bpy.context.scene.keentools_fb_settings.tex_height = 8192
-        bpy.ops.keentools_fb.tex_selector()
+        # bpy.ops.keentools_fb.tex_selector()
+        bpy.ops.keentools_fb.bake_tex(headnum=0)
+
         
         
 
