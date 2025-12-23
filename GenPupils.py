@@ -17,13 +17,14 @@ current_dir = os.getcwd()
 parent_dir = os.getcwd()
 
 class GenGazeP:
-    def __init__(self, R_pupil, L_pupil,directoy_name = "Gaze_PillarA_test",frame_end=2,
-                 clothes_choice="random",hat_choice="random",mask_choice="random",
-                 hair_choice="random"):
+    def __init__(self, R_pupil, L_pupil, directoy_name="Gaze_PillarA_test", frame_end=2,
+                 clothes_choice="random", hat_choice="random", mask_choice="random",
+                 hair_choice="random", run_id="0"):
         
         self.dumpImage = True
         self.enableDebug = True
         self.fpath = os.path.join(os.path.dirname(__file__), directoy_name)
+        self.run_id = str(run_id)
         self.IMAGE_Back = [str(f) for f in (Path(os.path.join(os.path.dirname(__file__),"HDRI"))).glob("*")]
         bpy.context.scene.frame_end = int(frame_end)
         self.frame_range = range(0, bpy.context.scene.frame_end + 1)
@@ -42,8 +43,18 @@ class GenGazeP:
         with open(file_path, 'r') as json_file:
             data = json.load(json_file)
         
-        # Access the stored variable
         return data
+
+    def _ensure_world_nodes(self):
+        world = bpy.context.scene.world
+        if world is None:
+            world = bpy.data.worlds.new("World")
+            bpy.context.scene.world = world
+        world.use_nodes = True
+        return world.node_tree
+
+    def _load_image(self, path):
+        return bpy.data.images.load(path, check_existing=True)
 
 
     
@@ -76,10 +87,11 @@ class GenGazeP:
     def setup_background(self, background_path, brightness=0.0, contrast=0, b_M=0, c_M=0):
         """Setup background image and compositing nodes."""
         cam = bpy.data.objects['STFOX']
-        img = bpy.data.images.load(background_path)
-        cam.data.show_background_images = True
-        bg = cam.data.background_images.new()
-        bg.image = img
+        img = self._load_image(background_path)
+        if hasattr(cam.data, "background_images"):
+            cam.data.show_background_images = True
+            bg = cam.data.background_images.new()
+            bg.image = img
         bpy.context.scene.render.film_transparent = True
         bpy.context.scene.use_nodes = True
         tree = bpy.context.scene.node_tree
@@ -132,14 +144,14 @@ class GenGazeP:
 
     def apply_environment_texture(self, background_path):
         """Apply HDRI environment texture."""
-        node_tree = bpy.context.scene.world.node_tree
+        node_tree = self._ensure_world_nodes()
         node_tree.nodes.clear()
 
         node_background = node_tree.nodes.new(type='ShaderNodeBackground')
         node_background.location = 500, 300
 
         node_environment = node_tree.nodes.new('ShaderNodeTexEnvironment')
-        node_environment.image = bpy.data.images.load(background_path)
+        node_environment.image = self._load_image(background_path)
         node_environment.location = -300, 0
 
         node_output = node_tree.nodes.new(type='ShaderNodeOutputWorld')
@@ -150,6 +162,9 @@ class GenGazeP:
 
         node_tex_coord = node_tree.nodes.new(type='ShaderNodeTexCoord')
         node_tex_coord.location = -200, 300
+        node_background.name = "Background"
+        node_environment.name = "Environment Texture"
+        node_mapping.name = "Mapping"
 
         links = node_tree.links
         links.new(node_tex_coord.outputs[0], node_mapping.inputs[0])
@@ -163,7 +178,7 @@ class GenGazeP:
     def apply_eye_head_noise(self):
         """Apply random textures and parameters to eyes and head materials."""
         eye_texture_path = str(random.choice(list((Path(os.path.join(os.path.dirname(__file__),"EyeTextures"))).glob("*"))))
-        bpy.data.materials['texture_Eye'].node_tree.nodes['Image Texture'].image = bpy.data.images.load(eye_texture_path)
+        bpy.data.materials['texture_Eye'].node_tree.nodes['Image Texture'].image = self._load_image(eye_texture_path)
         bpy.data.materials["FBHead_preview_mat"].node_tree.nodes["Mix Shader"].inputs[0].default_value = random.uniform(0.1, 0.7)
         bpy.data.materials["texture_Eye"].node_tree.nodes["Mix Shader"].inputs[0].default_value = random.uniform(0.3, 0.8)
 
@@ -215,8 +230,8 @@ class GenGazeP:
 
     	# Camera setup
         cam = bpy.data.objects['STFOX']
-        cam.data.background_images.clear()
-        cam.data.background_images.update()
+        if hasattr(cam.data, "background_images"):
+            cam.data.background_images.clear()
 
     	# Object evaluation for vertex data
         scene = bpy.context.scene
@@ -232,6 +247,7 @@ class GenGazeP:
         YY = np.array([v.co[1] for v in mesh.vertices])
         ZZ = np.array([v.co[2] for v in mesh.vertices])
         mesh.transform(matrix)
+        obj_eval.to_mesh_clear()
 
     	# List of important vertices (from your previous landmarks or other key vertices)
         res1 = self.data_json.get("res1", [])    
@@ -253,7 +269,7 @@ class GenGazeP:
 
     	# Create output directory for the frame
         directory = os.path.join(self.fpath, '%d' % f)
-        os.mkdir(directory)
+        os.makedirs(directory, exist_ok=True)
 
     	# If debugging is enabled, compute visibility for each vertex
         if self.enableDebug:
@@ -264,7 +280,7 @@ class GenGazeP:
                 dir = end - start
                 dir.normalize()
                 hit, loc, normal, ind, ob, m = bpy.context.scene.ray_cast(depsgraph, start, dir)
-                visible = hit & ((loc - end).length < 10e-3)
+                visible = hit and ((loc - end).length < 10e-3)
                 visibility[index] = visible
             with open(os.path.join(directory, 'DlibpointCloud.txt'), 'wt') as fp:
                 fp.write("Landmark,Pixel_x,Pixel_y,Visibility\n")
@@ -338,9 +354,16 @@ class GenGazeP:
             # Set background image or environment texture
             # self.setup_background(self.IMAGE_Back[random.randint(0, len(self.IMAGE_Back) - 1)], 0, random.randint(0, 30), 0)
             bpy.data.objects['Spot'].data.energy = random.uniform(1, 15)
-            bpy.data.worlds["World"].node_tree.nodes['Environment Texture'].image = bpy.data.images.load(random.choice(self.IMAGE_Back))
-            bpy.data.worlds["World"].node_tree.nodes["Background"].inputs[1].default_value = random.uniform(0.2, 0.5)
-            bpy.data.worlds["World"].node_tree.nodes["Mapping"].inputs[2].default_value[2] = math.radians(random.uniform(0, 360))
+            world_tree = self._ensure_world_nodes()
+            env_node = world_tree.nodes.get("Environment Texture")
+            if env_node:
+                env_node.image = self._load_image(random.choice(self.IMAGE_Back))
+            background_node = world_tree.nodes.get("Background")
+            if background_node:
+                background_node.inputs[1].default_value = random.uniform(0.2, 0.5)
+            mapping_node = world_tree.nodes.get("Mapping")
+            if mapping_node:
+                mapping_node.inputs[2].default_value[2] = math.radians(random.uniform(0, 360))
 
         	# Randomize depth of field
             #bpy.data.objects['STFOX'].data.dof.aperture_fstop = random.uniform(0.4, 15)
@@ -410,7 +433,7 @@ class GenGazeP:
 
     def start(self, nameRep):
         """Main function to start the generation process."""
-        self.fpath = os.path.join(self.fpath, sys.argv[18], nameRep)
+        self.fpath = os.path.join(self.fpath, self.run_id, nameRep)
         os.makedirs(self.fpath, exist_ok=True)
 
         prev_output_format = bpy.context.scene.render.image_settings.file_format
@@ -418,13 +441,16 @@ class GenGazeP:
         bpy.context.scene.render.image_settings.color_mode = 'RGB'
         bpy.context.scene.render.engine = 'CYCLES'
         prefs = bpy.context.preferences.addons['cycles'].preferences
-        prefs.compute_device_type = 'CUDA'
+        if hasattr(prefs, "get_devices"):
+            prefs.get_devices()
+        if hasattr(prefs, "compute_device_type"):
+            prefs.compute_device_type = 'CUDA'
         for device in prefs.devices:
             device.use = True
             
         
 
-        csv_path = os.path.join(Path(self.fpath).parent, f'Dlib_Blenshapes_ME_2d{sys.argv[18]}.csv')
+        csv_path = os.path.join(Path(self.fpath).parent, f'Dlib_Blenshapes_ME_2d{self.run_id}.csv')
         with open(csv_path, 'w', newline='') as csv_file:
             csv_writer = csv.writer(csv_file)
             row = Init_csv()
@@ -436,4 +462,3 @@ class GenGazeP:
         bpy.context.scene.render.image_settings.file_format = prev_output_format
         
         csv_file.close()
-

@@ -42,22 +42,30 @@ def apply_material(obj, texture_diffuse_path, texture_normal_path=None):
     nodes = mat.node_tree.nodes
 
     tex_image_diff = nodes.new('ShaderNodeTexImage')
-    tex_image_diff.image = bpy.data.images.load(texture_diffuse_path)
+    tex_image_diff.image = bpy.data.images.load(texture_diffuse_path, check_existing=True)
 
     mix_rgb = nodes.new('ShaderNodeMixRGB')
     mix_rgb.inputs[0].default_value = random.uniform(0.75, 1)
     mix_rgb.inputs[1].default_value = (random.random(), random.random(), random.random(), 1)
 
-    principled = nodes['Principled BSDF']
-    principled.inputs[9].default_value = 0.9
+    principled = nodes.get('Principled BSDF')
+    if principled is None:
+        principled = nodes.new('ShaderNodeBsdfPrincipled')
+        output = nodes.get('Material Output')
+        if output:
+            mat.node_tree.links.new(principled.outputs[0], output.inputs[0])
+    specular_input = principled.inputs.get("Specular") or principled.inputs.get("Specular IOR Level")
+    if specular_input:
+        specular_input.default_value = 0.9
 
     mat.node_tree.links.new(tex_image_diff.outputs[0], mix_rgb.inputs[2])
-    mat.node_tree.links.new(tex_image_diff.outputs[1], principled.inputs[21] )
+    if tex_image_diff.outputs.get("Alpha") and principled.inputs.get("Alpha"):
+        mat.node_tree.links.new(tex_image_diff.outputs["Alpha"], principled.inputs["Alpha"])
     mat.node_tree.links.new(mix_rgb.outputs[0], principled.inputs[0])
 
     if texture_normal_path:
         tex_image_norm = nodes.new('ShaderNodeTexImage')
-        tex_image_norm.image = bpy.data.images.load(texture_normal_path)
+        tex_image_norm.image = bpy.data.images.load(texture_normal_path, check_existing=True)
         bpy.data.images[Path(texture_normal_path).name].colorspace_settings.name = 'Non-Color'
 
         normal_map = nodes.new('ShaderNodeNormalMap')
@@ -66,7 +74,8 @@ def apply_material(obj, texture_diffuse_path, texture_normal_path=None):
 
         mat.node_tree.links.new(tex_image_norm.outputs[0], normal_map.inputs[1])
         mat.node_tree.links.new(normal_map.outputs[0], bump_map.inputs[3])
-        mat.node_tree.links.new(bump_map.outputs[0], principled.inputs[22])
+        if principled.inputs.get("Normal"):
+            mat.node_tree.links.new(bump_map.outputs[0], principled.inputs["Normal"])
 
     if obj.data.materials:
         obj.data.materials[0] = mat
@@ -83,22 +92,25 @@ def import_and_configure_obj(asset_params, asset_type):
     bpy.data.objects['FBHead'].rotation_euler = (0, 0, 0)
     path = Path(os.path.join(parent_dir, f"Hair2/makehuman_system_assets_cc0/{asset_type}/"))
     filepath = str(path) + "/" + chosen_file + "/" + asset_name + ".obj"
-    bpy.ops.wm.obj_import(filepath=filepath)
+    if hasattr(bpy.ops.wm, "obj_import"):
+        bpy.ops.wm.obj_import(filepath=filepath)
+    else:
+        bpy.ops.import_scene.obj(filepath=filepath)
     a = bpy.data.objects[asset_name]
     bpy.context.view_layer.objects.active = a
     bpy.ops.object.origin_set(type='GEOMETRY_ORIGIN', center='MEDIAN')
     a.rotation_euler[2] = math.radians(-90)
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
-    bpy.ops.object.modifier_add(type='SUBSURF')
-    bpy.context.object.modifiers["Subdivision"].render_levels = 3
+    subsurf = a.modifiers.new(name="Subdivision", type='SUBSURF')
+    subsurf.render_levels = 3
     a.location = localisation
     a.scale = scale
 
     a.rotation_euler = bpy.data.objects['FBHead'].rotation_euler
-    bpy.ops.object.constraint_add(type='CHILD_OF')
-    bpy.context.object.constraints["Child Of"].target = bpy.data.objects["FBHead"]
-    bpy.ops.object.constraint_add(type='COPY_ROTATION')
-    bpy.context.object.constraints["Copy Rotation"].target = bpy.data.objects["FBHead"]
+    child = a.constraints.new(type='CHILD_OF')
+    child.target = bpy.data.objects["FBHead"]
+    copy_rot = a.constraints.new(type='COPY_ROTATION')
+    copy_rot.target = bpy.data.objects["FBHead"]
     bpy.data.objects['FBHead'].rotation_euler = rotation
 
     texture_diffuse_path = str(path) + "/" + chosen_file + "/" + asset_name + "_diffuse.png"

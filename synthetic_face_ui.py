@@ -44,7 +44,8 @@ class SyntheticFaceUI:
 
         # Load an image using Pillow
         image_path = os.path.join(os.path.dirname(__file__), "utils", "interface.png")  # Replace with the path to your image
-        img = Image.open(image_path)
+        with Image.open(image_path) as img:
+            img = img.copy()
 
         # Resize the image to fit within the Tkinter window
         img = img.resize((400, 300), Image.Resampling.LANCZOS)
@@ -306,7 +307,7 @@ class SyntheticFaceUI:
             ]
 
             # Run the Blender process
-            subprocess.run(command)
+            subprocess.run(command, check=True)
 
 if __name__ == "__main__":
     root = tk.Tk()

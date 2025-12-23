@@ -70,10 +70,10 @@ class MyScene:
         light.data.energy = self.power
         
         # Add tracking constraint to the light
-        bpy.ops.object.constraint_add(type='TRACK_TO')
-        light.constraints["Track To"].target = bpy.data.objects["FBHead"]
-        light.constraints["Track To"].track_axis = 'TRACK_NEGATIVE_Z'
-        light.constraints["Track To"].up_axis = 'UP_Y'
+        constraint = light.constraints.new(type='TRACK_TO')
+        constraint.target = bpy.data.objects["FBHead"]
+        constraint.track_axis = 'TRACK_NEGATIVE_Z'
+        constraint.up_axis = 'UP_Y'
 
     def setup_dof(self):
         """
@@ -85,8 +85,8 @@ class MyScene:
         focus_empty.location = (bpy.data.objects['Left Eye'].location + bpy.data.objects['Right Eye'].location) / 2
 
         # Add child-of constraint to the empty
-        bpy.ops.object.constraint_add(type='CHILD_OF')
-        focus_empty.constraints["Child Of"].target = bpy.data.objects["FBHead"]
+        constraint = focus_empty.constraints.new(type='CHILD_OF')
+        constraint.target = bpy.data.objects["FBHead"]
 
         # Enable DoF on the camera
         camera = bpy.data.objects[self.camera_name]
@@ -98,7 +98,17 @@ class MyScene:
         Initializes the scene by setting up the background, camera, light, and DoF.
         """
         # Set background to black
-        bpy.data.worlds["World"].node_tree.nodes["Background"].inputs[0].default_value = (0, 0, 0, 1)
+        world = bpy.context.scene.world
+        if world is None:
+            world = bpy.data.worlds.new("World")
+            bpy.context.scene.world = world
+        world.use_nodes = True
+        nodes = world.node_tree.nodes
+        background = nodes.get("Background") or nodes.new(type="ShaderNodeBackground")
+        output = nodes.get("World Output") or nodes.new(type="ShaderNodeOutputWorld")
+        if not background.outputs[0].is_linked:
+            world.node_tree.links.new(background.outputs[0], output.inputs["Surface"])
+        background.inputs[0].default_value = (0, 0, 0, 1)
         
         # Setup camera, light, and DoF
         self.setup_camera()
@@ -108,4 +118,3 @@ class MyScene:
 if __name__ == "__main__":
     scene = MyScene("STFOX")
     scene.start()
-

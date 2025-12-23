@@ -20,6 +20,12 @@ current_dir = os.path.dirname(__file__)
 parent_dir = os.path.dirname(current_dir)
 
 
+def import_obj(filepath):
+        if hasattr(bpy.ops.wm, "obj_import"):
+                bpy.ops.wm.obj_import(filepath=filepath)
+        else:
+                bpy.ops.import_scene.obj(filepath=filepath)
+
 
 def Hat():
         l=[]
@@ -44,7 +50,7 @@ def Hat():
         bpy.data.objects['FBHead'].rotation_euler = (0,0,0)
         path = Path(os.path.join(parent_dir,"Hair2/makehuman_system_assets_cc0/clothes/"))
         filepath = str(path) + "/"+chosen_File + "/" + Hair_name+".obj"
-        bpy.ops.wm.obj_import(filepath=filepath)
+        import_obj(filepath=filepath)
         a = bpy.data.objects[Hair_name]
         bpy.context.view_layer.objects.active = a
         bpy.ops.object.origin_set(type='GEOMETRY_ORIGIN', center='MEDIAN')
@@ -131,7 +137,7 @@ def Maskk():
         bpy.data.objects['FBHead'].rotation_euler = (0,0,0)
         path = Path(os.path.join(parent_dir,"Hair2/makehuman_system_assets_cc0/mask/"))
         filepath = str(path) + "/"+chosen_File + "/" + Hair_name+".obj"
-        bpy.ops.wm.obj_import(filepath=filepath)
+        import_obj(filepath=filepath)
         a = bpy.data.objects[Hair_name]
         bpy.context.view_layer.objects.active = a
         bpy.ops.object.origin_set(type='GEOMETRY_ORIGIN', center='MEDIAN')
@@ -218,7 +224,7 @@ def SunGlasses():
         bpy.data.objects['FBHead'].rotation_euler = (0,0,0)
         path = Path(os.path.join(parent_dir,"Hair2/makehuman_system_assets_cc0/mask/"))
         filepath = str(path) + "/"+chosen_File + "/" + Hair_name+".obj"
-        bpy.ops.wm.obj_import(filepath=filepath)
+        import_obj(filepath=filepath)
         a = bpy.data.objects[Hair_name]
         bpy.context.view_layer.objects.active = a
         bpy.ops.object.origin_set(type='GEOMETRY_ORIGIN', center='MEDIAN')
@@ -295,7 +301,7 @@ def beard():
         bpy.data.objects['FBHead'].rotation_euler = (0,0,0)
         path = Path(os.path.join(parent_dir,"Hair2/makehuman_system_assets_cc0/beard/"))
         filepath = str(path) + "/"+chosen_File + "/" + Hair_name+".obj"
-        bpy.ops.wm.obj_import(filepath=filepath)
+        import_obj(filepath=filepath)
         a = bpy.data.objects[Hair_name]
         bpy.context.view_layer.objects.active = a
         bpy.ops.object.origin_set(type='GEOMETRY_ORIGIN', center='MEDIAN')

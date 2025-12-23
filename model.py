@@ -27,6 +27,32 @@ class SyntheticFaceGenerator:
         self.init_blendshapes()
         self.LeftPupil = None
         self.RightPupil = None
+
+    def _try_keentools_op(self, op_name, **kwargs):
+        ops = bpy.ops.keentools_fb
+        if not hasattr(ops, op_name):
+            return False
+        try:
+            getattr(ops, op_name)(**kwargs)
+            return True
+        except Exception as exc:
+            print(f"Warning: keentools_fb.{op_name} failed: {exc}")
+            return False
+
+    def _pickmode_starter(self, headnum, camnum):
+        try:
+            bpy.ops.keentools_fb.pickmode_starter(
+                headnum=headnum, camnum=camnum, auto_detect_single=False
+            )
+        except TypeError:
+            bpy.ops.keentools_fb.pickmode_starter(headnum=headnum, camnum=camnum)
+
+    def _ensure_world_nodes(self):
+        scn = bpy.context.scene
+        if scn.world is None:
+            scn.world = bpy.data.worlds.new("World")
+        scn.world.use_nodes = True
+        return scn.world.node_tree
         
     def read_json(self,file_path):
         with open(file_path, 'r') as json_file:
@@ -36,7 +62,7 @@ class SyntheticFaceGenerator:
         return data
         
     def init_blendshapes(self):
-        bpy.ops.keentools_fb.create_blendshapes()
+        self._try_keentools_op("create_blendshapes")
         obj = bpy.data.objects.get('FBHead')
         if obj:
             bpy.ops.object.select_all(action='DESELECT')
@@ -47,48 +73,64 @@ class SyntheticFaceGenerator:
         
         if(Path(texture_id).is_file()):
             try:
-                bpy.ops.keentools_fb.open_single_filebrowser(filepath=str(texture_id), camnum=0)
-                bpy.ops.keentools_fb.open_single_filebrowser(filepath=str(texture_id).replace(Path(texture_id).stem,
-                                                                                              str(Path(texture_id).stem)+"_mirror"), camnum=1)
+                self._try_keentools_op("open_single_filebrowser", filepath=str(texture_id), camnum=0)
+                self._try_keentools_op(
+                    "open_single_filebrowser",
+                    filepath=str(texture_id).replace(
+                        Path(texture_id).stem, f"{Path(texture_id).stem}_mirror"
+                    ),
+                    camnum=1,
+                )
             except Exception as e:
                 print(f"Error loading head texture: {e}")
                 return
         else:
             head_model_dir = Path(os.path.join(os.path.dirname(__file__),"HeadModel/Head"))
             try:
-                bpy.ops.keentools_fb.open_single_filebrowser(filepath=str(head_model_dir) + f"{texture_id}.jpeg", camnum=0)
-                bpy.ops.keentools_fb.open_single_filebrowser(filepath=str(head_model_dir) + f"{texture_id}_mirror.jpeg", camnum=1)
+                self._try_keentools_op(
+                    "open_single_filebrowser",
+                    filepath=str(head_model_dir) + f"{texture_id}.jpeg",
+                    camnum=0,
+                )
+                self._try_keentools_op(
+                    "open_single_filebrowser",
+                    filepath=str(head_model_dir) + f"{texture_id}_mirror.jpeg",
+                    camnum=1,
+                )
             except Exception as e:
                 print(f"Error loading head texture: {e}")
                 return
 
-        bpy.ops.keentools_fb.select_camera(headnum=0, camnum=0)
-        bpy.ops.keentools_fb.pickmode_starter(headnum=0, camnum=0, auto_detect_single=False)
-        bpy.ops.keentools_fb.exit_pinmode()
-        bpy.ops.keentools_fb.select_camera(headnum=0, camnum=1)
-        bpy.ops.keentools_fb.pickmode_starter(headnum=0, camnum=1, auto_detect_single=False)
-        bpy.context.scene.keentools_fb_settings.tex_uv_expand_percents = 20 
-        bpy.context.scene.keentools_fb_settings.tex_width = 8192
-        bpy.context.scene.keentools_fb_settings.tex_height = 8192
-        # bpy.ops.keentools_fb.tex_selector()
-        bpy.ops.keentools_fb.bake_tex(headnum=0)
+        self._try_keentools_op("select_camera", headnum=0, camnum=0)
+        self._pickmode_starter(headnum=0, camnum=0)
+        self._try_keentools_op("exit_pinmode")
+        self._try_keentools_op("select_camera", headnum=0, camnum=1)
+        self._pickmode_starter(headnum=0, camnum=1)
+        settings = getattr(bpy.context.scene, "keentools_fb_settings", None)
+        if settings:
+            settings.tex_uv_expand_percents = 20
+            settings.tex_width = 8192
+            settings.tex_height = 8192
+        self._try_keentools_op("tex_selector")
+        self._try_keentools_op("bake_tex", headnum=0)
 
         
         
 
     def add_environment_texture(self, background_path):
-        C = bpy.context
-        scn = C.scene
-        node_tree = scn.world.node_tree
+        node_tree = self._ensure_world_nodes()
         tree_nodes = node_tree.nodes
         tree_nodes.clear()
 
         node_background = tree_nodes.new(type='ShaderNodeBackground')
         node_environment = tree_nodes.new('ShaderNodeTexEnvironment')
-        node_environment.image = bpy.data.images.load(background_path)
+        node_environment.image = bpy.data.images.load(background_path, check_existing=True)
         node_output = tree_nodes.new(type='ShaderNodeOutputWorld')
         node_mapping = tree_nodes.new(type='ShaderNodeMapping')
         node_tex_coord = tree_nodes.new(type='ShaderNodeTexCoord')
+        node_background.name = "Background"
+        node_environment.name = "Environment Texture"
+        node_mapping.name = "Mapping"
 
         links = node_tree.links
         links.new(node_tex_coord.outputs[0], node_mapping.inputs[0])
@@ -112,10 +154,14 @@ class SyntheticFaceGenerator:
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
         tex_image = nodes.new('ShaderNodeTexImage')
-        tex_image.image = bpy.data.images.load(texture_path)
+        tex_image.image = bpy.data.images.load(texture_path, check_existing=True)
         principled = nodes['Principled BSDF']
-        principled.inputs[9].default_value = 1
-        principled.inputs[7].default_value = 0
+        specular_input = principled.inputs.get("Specular") or principled.inputs.get("Specular IOR Level")
+        if specular_input:
+            specular_input.default_value = 1
+        roughness_input = principled.inputs.get("Roughness")
+        if roughness_input:
+            roughness_input.default_value = 0
         transparent = nodes.new('ShaderNodeBsdfTransparent')
         transparent.inputs[0].default_value = (0, 0, 0, 1)
         mix_shader = nodes.new('ShaderNodeMixShader')
@@ -134,8 +180,12 @@ class SyntheticFaceGenerator:
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
         principled = nodes['Principled BSDF']
-        principled.inputs[9].default_value = 0.9
-        principled.inputs[7].default_value = 0
+        specular_input = principled.inputs.get("Specular") or principled.inputs.get("Specular IOR Level")
+        if specular_input:
+            specular_input.default_value = 0.9
+        roughness_input = principled.inputs.get("Roughness")
+        if roughness_input:
+            roughness_input.default_value = 0
         transparent = nodes.new('ShaderNodeBsdfTransparent')
         transparent.inputs[0].default_value = (0, 0, 0, 1)
         mix_shader = nodes.new('ShaderNodeMixShader')
@@ -176,16 +226,16 @@ class SyntheticFaceGenerator:
         self.apply_transform_rotation(obj)
 
     def add_constraint(self, obj_act, target, constraint_type, constraint_name):
-        bpy.context.view_layer.objects.active = obj_act
-        bpy.ops.object.constraint_add(type=constraint_type)
-        bpy.context.object.constraints[constraint_name].target = target
+        constraint = obj_act.constraints.new(type=constraint_type)
+        constraint.name = constraint_name
+        constraint.target = target
 
-    def start(self):
+    def start(self, texture_id):
         for img in bpy.data.images:
             if not img.users:
                 bpy.data.images.remove(img)
 
-        self.load_head_texture(sys.argv[6])
+        self.load_head_texture(texture_id)
         self.head_texture()
         eye_texture_dir = Path(os.path.join(os.path.dirname(__file__),"EyeTextures/"))
         eye_textures = sorted([str(f) for f in eye_texture_dir.glob("*")])
@@ -208,6 +258,7 @@ class SyntheticFaceGenerator:
         x = np.array([ v.co[0] for v in mesh.vertices])
         y = np.array([ v.co[1] for v in mesh.vertices])
         z = np.array([ v.co[2] for v in mesh.vertices])
+        obj_eval.to_mesh_clear()
         self.create_eye_sphere(self.leftI, 'Left Eye', x, y, z, chosen_eye_texture)
         self.create_eye_sphere(self.rightI, 'Right Eye', x, y, z, chosen_eye_texture)
         self.rotate_eyes(bpy.data.objects['Left Eye'])
@@ -223,5 +274,7 @@ class SyntheticFaceGenerator:
 
 if __name__ == "__main__":
     generator = SyntheticFaceGenerator()
-    generator.start()
+    if len(sys.argv) < 2:
+        raise SystemExit("Usage: model.py <texture_id>")
+    generator.start(sys.argv[1])
     print('generator printer',generator.RightPupil, generator.LeftPupil)

@@ -41,6 +41,8 @@ def Write_In_Csv(frame,csv_writer):
     
 def Write_In_CsvALL(csv_writer):
     res1 =[467, 11774, 4600, 6525, 7531, 5925, 7261, 6732, 9282, 9596, 9533, 9475, 8826, 8050, 4299, 12283, 2070, 76, 462, 2813, 3570, 2853, 1010, 1005, 4110, 575, 3403, 5623, 5400, 5674, 5722, 5077, 5075, 5721, 4723, 4644, 1252, 3437, 3101, 9917, 10120, 10052, 9955, 1067, 3019, 870, 10349, 10297, 6831, 7635, 7831, 8884, 8070, 6418, 9411, 9406, 9478, 9167, 5927, 7902, 7244, 5936, 9178, 9472, 9194, 9446, 9312, 5885]
+    scene = bpy.context.scene
+    cam = bpy.data.objects['STFOX']
     BShapesName= ([i.name for i in bpy.data.shape_keys["Key"].key_blocks])
     #Eye_mouth = [BShapesName[1],BShapesName[2],BShapesName[20],BShapesName[21],BShapesName[31],BShapesName[32]]
     #Eye_mouth = BShapesName[1:5]+BShapesName[20:21]
@@ -55,6 +57,7 @@ def Write_In_CsvALL(csv_writer):
     YY = np.array([v.co[1] for v in mesh.vertices])
     ZZ = np.array([v.co[2] for v in mesh.vertices])
     mesh.transform(matrix)
+    obj_eval.to_mesh_clear()
     
     # Getting 2D dlib in camera reference   
     coW = [Vector((XX[i],YY[i],ZZ[i])) for i in res1]
@@ -104,7 +107,6 @@ def Init_csvAll():
 
     row =  pix+Eye_Blend
     return row
-
 
 
 

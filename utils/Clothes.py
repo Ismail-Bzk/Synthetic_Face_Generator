@@ -19,6 +19,13 @@ current_dir = os.path.dirname(__file__)
 parent_dir = os.path.dirname(current_dir)
 
 
+def import_obj(filepath):
+        if hasattr(bpy.ops.wm, "obj_import"):
+                bpy.ops.wm.obj_import(filepath=filepath)
+        else:
+                bpy.ops.import_scene.obj(filepath=filepath)
+
+
 def hair_Model():
         def add_texture(texture_path, obj):
             mat = bpy.data.materials.new(name='HairMaterial')
@@ -83,7 +90,7 @@ def hair_Model():
         # Loading hair model
         path = os.path.join(parent_dir,"Hair2/makehuman_system_assets_cc0/hair/")
         filepath = str(path) + "/"+chosen_File + "/" + Hair_name+".obj"
-        bpy.ops.wm.obj_import(filepath=filepath)
+        import_obj(filepath=filepath)
         a = bpy.data.objects[Hair_name]
         bpy.context.view_layer.objects.active = a
         bpy.ops.object.modifier_add(type='SUBSURF')
@@ -185,7 +192,7 @@ def Clothes_Model():
         bpy.data.objects['FBHead'].rotation_euler = (0,0,0)
         path = os.path.join(parent_dir,"Hair2/makehuman_system_assets_cc0/clothes/")
         filepath = str(path) + "/"+chosen_File + "/" + Hair_name+".obj"
-        bpy.ops.wm.obj_import(filepath=filepath)
+        import_obj(filepath=filepath)
         a = bpy.data.objects[Hair_name]
         bpy.context.view_layer.objects.active = a
         bpy.ops.object.modifier_add(type='SUBSURF')
@@ -248,7 +255,7 @@ def Clothes_Model():
 def Mask():
         path = os.path.join(parent_dir,"WithoutTracking")
         filepath = str(path) +"/Mask.obj"
-        bpy.ops.wm.obj_import(filepath=filepath)
+        import_obj(filepath=filepath)
         
         rotation = bpy.data.objects['FBHead'].rotation_euler.copy()
         bpy.data.objects['FBHead'].rotation_euler = (0,0,0)

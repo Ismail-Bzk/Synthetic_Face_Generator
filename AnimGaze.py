@@ -34,7 +34,7 @@ class MyAnimGaze:
         self.set_initial_keyframes()
 
         # Generate the animation
-        self.generate_animation(eval(fixed))
+        self.generate_animation(self._parse_bool(fixed))
 
         # Reset to the first frame
         self.scene.frame_set(0)
@@ -66,6 +66,12 @@ class MyAnimGaze:
         if head:
             head.rotation_euler = Vector((0, 0, 0))
             head.keyframe_insert(data_path='rotation_euler', frame=0)
+
+    @staticmethod
+    def _parse_bool(value):
+        if isinstance(value, bool):
+            return value
+        return str(value).strip().lower() in {"1", "true", "yes", "y"}
 
     def generate_animation(self, fixed):
         """
@@ -101,4 +107,3 @@ class MyAnimGaze:
 
 if __name__ == "__main__":
     MyAnimGaze()
-
