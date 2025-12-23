@@ -1,0 +1,47 @@
+stages:
+  - build
+
+variables:
+  BLENDER_VERSION: "3.5.1"
+  BLENDER_DIR: "blender-3.5.1-linux-x64"
+  BLENDER_TAR: "blender-3.5.1-linux-x64.tar.xz"
+  KEENTOOLS_ZIP_URL: "https://downloads.keentools.io/keentools-2025_3_0-for-blender"
+
+cache:
+  key: blender-3.5.1-linux-x64
+  paths:
+    - blender-3.5.1-linux-x64
+    - blender-3.5.1-linux-x64.tar.xz
+
+blender-ci:
+  stage: build
+  script:
+    - set -euo pipefail
+    - mkdir -p ci_output
+    - |
+      if [ ! -d "${BLENDER_DIR}" ]; then
+        curl -L -o "${BLENDER_TAR}" "https://download.blender.org/release/Blender3.5/${BLENDER_TAR}"
+        tar -xf "${BLENDER_TAR}"
+      fi
+    - echo "KeenTools URL: ${KEENTOOLS_ZIP_URL}"
+    - curl -fL --retry 3 --retry-delay 2 -o keentools.zip "${KEENTOOLS_ZIP_URL}"
+    - |
+      ./blender-3.5.1-linux-x64/blender --background --python-expr "import bpy, os, addon_utils; path=os.path.abspath('keentools.zip'); print('KeenTools zip:', path); bpy.ops.preferences.addon_install(filepath=path); modules=[m.__name__ for m in addon_utils.modules(refresh=True) if 'keentools' in m.__name__]; print('KeenTools modules:', modules); \
+      1/1 if modules else (_ for _ in ()).throw(SystemExit('KeenTools addon not found')); \
+      [bpy.ops.preferences.addon_enable(module=m) for m in modules]; bpy.ops.wm.save_userpref(); print('KeenTools enabled')" \
+      2>&1 | tee ci_output/keentools_install.log
+    - |
+      if [ -f license.ktlf ]; then
+        ./blender-3.5.1-linux-x64/blender --background --python-expr "import bpy, os; print('Installing license from', os.path.abspath('license.ktlf')); bpy.ops.keentools_preferences.install_license_offline(product=0, lic_path=os.path.abspath('license.ktlf'))" \
+        2>&1 | tee ci_output/keentools_license.log
+      else
+        echo "license.ktlf not found, skipping license install"
+      fi
+    - |
+      ./blender-3.5.1-linux-x64/blender model_v1/Model_Normal.blend --background --python Launch.py -- \
+      HeadModel/Head1.jpeg Pillar ismail 20 -10,10 -10,10 10 True random empty empty random 1 \
+      2>&1 | tee ci_output/blender.log
+  artifacts:
+    when: always
+    paths:
+      - ci_output

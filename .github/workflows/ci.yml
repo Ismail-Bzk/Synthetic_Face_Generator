@@ -1,0 +1,58 @@
+name: Blender CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  blender-ci:
+    runs-on: ubuntu-latest
+    env:
+      KEENTOOLS_ZIP_URL: ${{ secrets.KEENTOOLS_ZIP_URL || 'https://downloads.keentools.io/keentools-2025_3_0-for-blender' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Blender
+        uses: actions/cache@v4
+        with:
+          path: |
+            blender-3.5.1-linux-x64
+            blender-3.5.1-linux-x64.tar.xz
+          key: blender-3.5.1-linux-x64
+
+      - name: Download Blender 3.5.1
+        run: |
+          if [ ! -d blender-3.5.1-linux-x64 ]; then
+            curl -L -o blender-3.5.1-linux-x64.tar.xz https://download.blender.org/release/Blender3.5/blender-3.5.1-linux-x64.tar.xz
+            tar -xf blender-3.5.1-linux-x64.tar.xz
+          fi
+
+      - name: Prepare CI output
+        run: |
+          mkdir -p ci_output
+
+      - name: Download KeenTools addon
+        run: |
+          echo "KeenTools URL: ${KEENTOOLS_ZIP_URL}"
+          curl -fL --retry 3 --retry-delay 2 -o keentools.zip "${KEENTOOLS_ZIP_URL}"
+
+      - name: Install and enable KeenTools addon
+        run: |
+          ./blender-3.5.1-linux-x64/blender --background --python-expr "import bpy, os, addon_utils; path=os.path.abspath('keentools.zip'); print('KeenTools zip:', path); bpy.ops.preferences.addon_install(filepath=path); modules=[m.__name__ for m in addon_utils.modules(refresh=True) if 'keentools' in m.__name__]; print('KeenTools modules:', modules); (lambda ms: (_ for _ in ()).throw(SystemExit('KeenTools addon not found')) if not ms else None)(modules); [bpy.ops.preferences.addon_enable(module=m) for m in modules]; bpy.ops.wm.save_userpref(); print('KeenTools enabled')" 2>&1 | tee ci_output/keentools_install.log
+
+      - name: Install KeenTools core and license
+        if: ${{ env.KEENTOOLS_ZIP_URL != '' }}
+        run: |
+          ./blender-3.5.1-linux-x64/blender --background --python ci_keentools_setup.py 2>&1 | tee ci_output/keentools_setup.log
+
+      - name: Run Blender dataset generation
+        run: |
+          ./blender-3.5.1-linux-x64/blender model_v1/Model_Normal.blend --background --python Launch.py -- HeadModel/Head1.jpeg Pillar ismail 20 -10,10 -10,10 10 True random empty empty random 1 2>&1 | tee ci_output/blender.log
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4 
+        with:
+          name: blender-ci-output 
+          path: ci_output
+          
