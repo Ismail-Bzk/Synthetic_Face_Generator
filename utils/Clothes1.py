@@ -54,9 +54,9 @@ def apply_material(obj, texture_diffuse_path, texture_normal_path=None):
         output = nodes.get('Material Output')
         if output:
             mat.node_tree.links.new(principled.outputs[0], output.inputs[0])
-    specular_input = principled.inputs.get("Specular") or principled.inputs.get("Specular IOR Level")
-    if specular_input:
-        specular_input.default_value = 0.9
+    roughness_input = principled.inputs.get("Roughness")
+    if roughness_input:
+        roughness_input.default_value = 0.9
 
     mat.node_tree.links.new(tex_image_diff.outputs[0], mix_rgb.inputs[2])
     if tex_image_diff.outputs.get("Alpha") and principled.inputs.get("Alpha"):

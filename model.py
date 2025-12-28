@@ -158,10 +158,10 @@ class SyntheticFaceGenerator:
         principled = nodes['Principled BSDF']
         specular_input = principled.inputs.get("Specular") or principled.inputs.get("Specular IOR Level")
         if specular_input:
-            specular_input.default_value = 1
+            specular_input.default_value = 0
         roughness_input = principled.inputs.get("Roughness")
         if roughness_input:
-            roughness_input.default_value = 0
+            roughness_input.default_value = 1
         transparent = nodes.new('ShaderNodeBsdfTransparent')
         transparent.inputs[0].default_value = (0, 0, 0, 1)
         mix_shader = nodes.new('ShaderNodeMixShader')
@@ -182,10 +182,10 @@ class SyntheticFaceGenerator:
         principled = nodes['Principled BSDF']
         specular_input = principled.inputs.get("Specular") or principled.inputs.get("Specular IOR Level")
         if specular_input:
-            specular_input.default_value = 0.9
+            specular_input.default_value = 0
         roughness_input = principled.inputs.get("Roughness")
         if roughness_input:
-            roughness_input.default_value = 0
+            roughness_input.default_value = 0.9
         transparent = nodes.new('ShaderNodeBsdfTransparent')
         transparent.inputs[0].default_value = (0, 0, 0, 1)
         mix_shader = nodes.new('ShaderNodeMixShader')
