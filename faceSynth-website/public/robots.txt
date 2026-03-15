@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://facesynth.io/sitemap.xml
+
+# Désactiver les crawlers de service
+User-agent: AdsBot-Google
+Disallow: /
+
+User-agent: GPTBot
+Disallow: /
