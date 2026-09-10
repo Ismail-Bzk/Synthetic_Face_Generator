@@ -234,7 +234,22 @@ def _install_license() -> bool:
 
     product = int(os.environ.get("KEENTOOLS_PRODUCT", "0"))
     print(f"→ Installing license from {lic_path}")
-    ok = _call_op(op, product=product, filepath=lic_path)
+    try:
+        props = op.get_rna_type().properties
+    except Exception as exc:  # pragma: no cover - Blender runtime
+        print("Failed to read license operator props:", exc)
+        return False
+
+    license_path_key = next(
+        (key for key in ("lic_path", "license_path", "filepath", "path") if key in props),
+        None,
+    )
+    if license_path_key is None:
+        print("✗ install_license_offline has no supported license-path property")
+        print("Available properties:", [prop.identifier for prop in props])
+        return False
+
+    ok = _call_op(op, product=product, **{license_path_key: lic_path})
 
     try:
         bpy.ops.wm.save_userpref()
